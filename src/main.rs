@@ -23,29 +23,27 @@ use std::{fs, path::Path, time::Duration};
 
 const MEMORY_SIZE: usize = 0x1000008;
 const INSTRUCTION_STEP: usize = 65536;
-const _COLOR_INTENSITY: usize = 0x33;
-
-//
-// [0] {red: 000, blue: 000, green: 000}
-// [1] {red: 033, blue: 000, green: 000}
-// [2] {red: 066, blue: 000, green: 000}
-// [3] {red: 099, blue: 000, green: 000}
+const COLOR_INTENSITY: usize = 0x33;
 
 fn main() {
-    let (mut rl, thread) = raylib::init().size(640, 480).title("Hello, World").build();
-
-    while !rl.window_should_close() {
-        let mut d = rl.begin_drawing(&thread);
-
-        d.clear_background(Color::WHITE);
-        d.draw_text("Hello, world!", 12, 12, 20, Color::BLACK);
-    }
     let path = Path::new("/home/max/Documents/dev/rust/bpp/roms/Palette Test.BytePusher");
     let program = fs::read(path).expect("Couldn't read program");
 
-    let mut cpu = Cpu::new(program.clone());
+    let mut cpu = Cpu::new(program);
 
-    loop {
+    let palette: &mut [Color; 256] = &mut [Default::default(); 256];
+    let mut idx = 0;
+    for r in (0..=255).step_by(COLOR_INTENSITY) {
+        for g in (0..=255).step_by(COLOR_INTENSITY) {
+            for b in (0..=255).step_by(COLOR_INTENSITY) {
+                palette[idx] = Color { r, g, b, a: 255 };
+                idx += 1;
+            }
+        }
+    }
+
+    let (mut rl, thread) = raylib::init().size(256, 256).title("BytePusher VM").build();
+    while !rl.window_should_close() {
         cpu.reset();
         let mut step = 0;
         while step < INSTRUCTION_STEP {
@@ -53,14 +51,22 @@ fn main() {
             step += 1;
         }
 
-        for (idx, byte) in (cpu.memory[0..20]).iter().enumerate() {
-            // if *byte != program[idx] {
-            //     println!("{}:\t{} \t{}:\t{}", idx, byte, idx, program[idx]);
-            // }
-            println!("{}:\t{}", idx, byte);
+        // Display pixels
+        let mut d = rl.begin_drawing(&thread);
+        for y in 0..256 {
+            for x in 0..256 {
+                let mem_color_idx =
+                    (((cpu.memory[5]) as usize) << 16) | ((y as usize) << 8) | x as usize;
+                let pal_color_idx = cpu.memory[mem_color_idx] as usize;
+                if pal_color_idx < 216 {
+                    d.draw_pixel(x, y, palette[pal_color_idx]);
+                } else {
+                    d.draw_pixel(x, y, Color::BLACK);
+                }
+            }
         }
-        println!("---------------------------");
-        std::thread::sleep(Duration::new(0, 0));
+
+        // std::thread::sleep(Duration::from_secs(1));
     }
 }
 
@@ -108,7 +114,6 @@ impl Cpu {
                     source, destination, jump
                 );
                 // Print destination PC values
-                //
                 println!("PC+0: {}", *self.pc.add(0) as usize);
                 println!("PC+1: {}", *self.pc.add(1) as usize);
                 println!("PC+2: {}", *self.pc.add(2) as usize);

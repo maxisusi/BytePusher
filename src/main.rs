@@ -1,3 +1,4 @@
+use raylib::prelude::*;
 use std::{fs, path::Path, time::Duration};
 
 // * The memory of the Bytepusher. 16 MiB (0x1000008 bytes).
@@ -31,7 +32,15 @@ const _COLOR_INTENSITY: usize = 0x33;
 // [3] {red: 099, blue: 000, green: 000}
 
 fn main() {
-    let path = Path::new("/home/max/Documents/dev/rust/bpp/roms/nyan.bp");
+    let (mut rl, thread) = raylib::init().size(640, 480).title("Hello, World").build();
+
+    while !rl.window_should_close() {
+        let mut d = rl.begin_drawing(&thread);
+
+        d.clear_background(Color::WHITE);
+        d.draw_text("Hello, world!", 12, 12, 20, Color::BLACK);
+    }
+    let path = Path::new("/home/max/Documents/dev/rust/bpp/roms/Palette Test.BytePusher");
     let program = fs::read(path).expect("Couldn't read program");
 
     let mut cpu = Cpu::new(program.clone());
@@ -44,15 +53,14 @@ fn main() {
             step += 1;
         }
 
-        for (idx, byte) in (cpu.memory[0..10]).iter().enumerate() {
+        for (idx, byte) in (cpu.memory[0..20]).iter().enumerate() {
             // if *byte != program[idx] {
             //     println!("{}:\t{} \t{}:\t{}", idx, byte, idx, program[idx]);
             // }
-            //
             println!("{}:\t{}", idx, byte);
         }
         println!("---------------------------");
-        std::thread::sleep(Duration::new(2, 0));
+        std::thread::sleep(Duration::new(0, 0));
     }
 }
 
@@ -100,10 +108,14 @@ impl Cpu {
                     source, destination, jump
                 );
                 // Print destination PC values
-                println!("PC: {}", *self.pc.add(3) as usize);
-                println!("PC+1: {}", *self.pc.add(4) as usize);
-                println!("PC+2: {}", *self.pc.add(5) as usize);
-                println!("");
+                //
+                println!("PC+0: {}", *self.pc.add(0) as usize);
+                println!("PC+1: {}", *self.pc.add(1) as usize);
+                println!("PC+2: {}", *self.pc.add(2) as usize);
+                println!("PC+3: {}", *self.pc.add(3) as usize);
+                println!("PC+4: {}", *self.pc.add(4) as usize);
+                println!("PC+5: {}", *self.pc.add(5) as usize);
+                println!("\n");
                 panic!("Destination out of bounds");
             }
             self.memory[destination] = self.memory[source];

@@ -21,12 +21,14 @@ use std::{fs, path::Path, time::Duration};
 //  * -------------------------------
 //  * The byte ordering used by Bytepusher is big-endian.
 
-const MEMORY_SIZE: usize = 0x1000008;
-const INSTRUCTION_STEP: usize = 65536;
+const MEM_SIZE: usize = 0x1000008;
+const MEM_PADDING: usize = 0x8;
+const INSTR_STEP: usize = 65536;
+
 const COLOR_INTENSITY: usize = 0x33;
 
 fn main() {
-    let path = Path::new("/home/max/Documents/dev/rust/bpp/roms/Palette Test.BytePusher");
+    let path = Path::new("/home/max/Documents/dev/rust/bpp/roms/nyan.bp");
     let program = fs::read(path).expect("Couldn't read program");
 
     let mut cpu = Cpu::new(program);
@@ -46,7 +48,7 @@ fn main() {
     while !rl.window_should_close() {
         cpu.reset();
         let mut step = 0;
-        while step < INSTRUCTION_STEP {
+        while step < INSTR_STEP {
             cpu.step();
             step += 1;
         }
@@ -65,8 +67,6 @@ fn main() {
                 }
             }
         }
-
-        // std::thread::sleep(Duration::from_secs(1));
     }
 }
 
@@ -76,12 +76,11 @@ struct Cpu {
 }
 
 impl Cpu {
-    fn new(mem: Vec<u8>) -> Self {
-        let mut memory = mem.clone();
-        memory.resize(MEMORY_SIZE, 0);
+    fn new(rom: Vec<u8>) -> Self {
+        let mut memory = rom.clone();
+        memory.resize(MEM_SIZE + MEM_PADDING, 0);
         let pc = memory.as_ptr();
-
-        Self { memory: mem, pc }
+        Self { memory, pc }
     }
 
     fn reset(&mut self) {
@@ -107,22 +106,6 @@ impl Cpu {
                 | ((*(self.pc.add(7)) as usize) << 8)
                 | *(self.pc.add(8)) as usize;
 
-            if destination > self.memory.len() {
-                // Print values
-                println!(
-                    "Source: {} Destination: {} Jump: {}",
-                    source, destination, jump
-                );
-                // Print destination PC values
-                println!("PC+0: {}", *self.pc.add(0) as usize);
-                println!("PC+1: {}", *self.pc.add(1) as usize);
-                println!("PC+2: {}", *self.pc.add(2) as usize);
-                println!("PC+3: {}", *self.pc.add(3) as usize);
-                println!("PC+4: {}", *self.pc.add(4) as usize);
-                println!("PC+5: {}", *self.pc.add(5) as usize);
-                println!("\n");
-                panic!("Destination out of bounds");
-            }
             self.memory[destination] = self.memory[source];
             self.pc = self.memory.as_ptr().add(jump);
         }

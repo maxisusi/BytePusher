@@ -53,6 +53,8 @@ fn main() {
             step += 1;
         }
 
+        // println!("FPS:{}", rl.get_fps());
+
         // Display pixels
         let mut d = rl.begin_drawing(&thread);
         for y in 0..256 {
@@ -67,6 +69,8 @@ fn main() {
                 }
             }
         }
+
+        // std::thread::sleep(Duration::from_millis(100));
     }
 }
 
@@ -84,10 +88,11 @@ impl Cpu {
     }
 
     fn reset(&mut self) {
-        let pc_addr = ((((self.memory[2]) as u32) << 16)
-            | (((self.memory[3]) as u32) << 8)
-            | self.memory[4] as u32) as usize;
         unsafe {
+            // Unsafe as well, but... 3 FPS improvement
+            let pc_addr = (((*(self.memory.get_unchecked(2)) as u32) << 16)
+                | ((*(self.memory.get_unchecked(3)) as u32) << 8)
+                | *self.memory.get_unchecked(4) as u32) as usize;
             self.pc = self.memory.as_ptr().add(pc_addr);
         }
     }
@@ -106,7 +111,9 @@ impl Cpu {
                 | ((*(self.pc.add(7)) as usize) << 8)
                 | *(self.pc.add(8)) as usize;
 
-            self.memory[destination] = self.memory[source];
+            let mem_ptr = self.memory.as_mut_ptr();
+            // -> Not safe but 11 FPS Improvement... (As long as the ROM is good, trust me bro)
+            std::ptr::copy(mem_ptr.add(source), mem_ptr.add(destination), 1);
             self.pc = self.memory.as_ptr().add(jump);
         }
     }

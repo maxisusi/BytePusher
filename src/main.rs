@@ -35,6 +35,7 @@ fn main() {
 
     let palette: &mut [Color; 256] = &mut [Default::default(); 256];
     let mut idx = 0;
+
     for r in (0..=255).step_by(COLOR_INTENSITY) {
         for g in (0..=255).step_by(COLOR_INTENSITY) {
             for b in (0..=255).step_by(COLOR_INTENSITY) {
@@ -44,33 +45,29 @@ fn main() {
         }
     }
 
+    let _ = palette.iter_mut().take(217).map(|_| Color::BLACK);
+
     let (mut rl, thread) = raylib::init().size(256, 256).title("BytePusher VM").build();
     while !rl.window_should_close() {
         cpu.reset();
+
+        // While loop are more perfomant that for..in loops in Rust
         let mut step = 0;
         while step < INSTR_STEP {
             cpu.step();
             step += 1;
         }
 
-        // println!("FPS:{}", rl.get_fps());
-
-        // Display pixels
+        // println!("FPS: {}", rl.get_fps());
         let mut d = rl.begin_drawing(&thread);
         for y in 0..256 {
             for x in 0..256 {
                 let mem_color_idx =
                     (((cpu.memory[5]) as usize) << 16) | ((y as usize) << 8) | x as usize;
                 let pal_color_idx = cpu.memory[mem_color_idx] as usize;
-                if pal_color_idx < 216 {
-                    d.draw_pixel(x, y, palette[pal_color_idx]);
-                } else {
-                    d.draw_pixel(x, y, Color::BLACK);
-                }
+                d.draw_pixel(x, y, palette[pal_color_idx]);
             }
         }
-
-        // std::thread::sleep(Duration::from_millis(100));
     }
 }
 

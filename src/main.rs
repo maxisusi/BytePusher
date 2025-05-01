@@ -58,7 +58,7 @@ fn main() {
             step += 1;
         }
 
-        // Key polling
+        // Check if any key is pressed
         if let Some(key) = rl.get_key_pressed() {
             println!("{:?}", key);
             match key {
@@ -80,6 +80,16 @@ fn main() {
                 KeyboardKey::KEY_V => cpu.step_key(15),
                 _ => {}
             }
+        } else {
+            // Unset all keys
+            let mut keyb_ptr = cpu.memory.as_ptr() as *mut u16;
+            let mut value = unsafe { u16::from_le(*keyb_ptr) };
+            for i in 0..16 {
+                if value & (1 << i) != 0 {
+                    value &= !(1 << i);
+                }
+            }
+            unsafe { *keyb_ptr = value }
         }
 
         let mut d = rl.begin_drawing(&thread);

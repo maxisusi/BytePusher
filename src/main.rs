@@ -1,5 +1,5 @@
 use raylib::prelude::*;
-use std::{fs, path::Path, time::Duration};
+use std::{fs, ops::BitOr, path::Path, time::Duration};
 
 // * The memory of the Bytepusher. 16 MiB (0x1000008 bytes).
 //  * The memory map is located at the beginning of memory and
@@ -28,7 +28,7 @@ const INSTR_STEP: usize = 65536;
 const COLOR_INTENSITY: usize = 0x33;
 
 fn main() {
-    let path = Path::new("/home/max/Documents/dev/rust/bpp/roms/nyan.bp");
+    let path = Path::new("/home/max/Documents/dev/rust/bpp/roms/Keyboard Test.bytepusher");
     let program = fs::read(path).expect("Couldn't read program");
 
     let mut cpu = Cpu::new(program);
@@ -58,8 +58,32 @@ fn main() {
             step += 1;
         }
 
-        // println!("FPS: {}", rl.get_fps());
+        // Key polling
+        if let Some(key) = rl.get_key_pressed() {
+            println!("{:?}", key);
+            match key {
+                KeyboardKey::KEY_ONE => cpu.step_key(1),
+                KeyboardKey::KEY_TWO => cpu.step_key(2),
+                KeyboardKey::KEY_THREE => cpu.step_key(3),
+                KeyboardKey::KEY_FOUR => cpu.step_key(12),
+                KeyboardKey::KEY_Q => cpu.step_key(4),
+                KeyboardKey::KEY_W => cpu.step_key(5),
+                KeyboardKey::KEY_E => cpu.step_key(6),
+                KeyboardKey::KEY_R => cpu.step_key(13),
+                KeyboardKey::KEY_A => cpu.step_key(7),
+                KeyboardKey::KEY_S => cpu.step_key(8),
+                KeyboardKey::KEY_D => cpu.step_key(9),
+                KeyboardKey::KEY_F => cpu.step_key(14),
+                KeyboardKey::KEY_Z => cpu.step_key(10),
+                KeyboardKey::KEY_X => cpu.step_key(0),
+                KeyboardKey::KEY_C => cpu.step_key(11),
+                KeyboardKey::KEY_V => cpu.step_key(15),
+                _ => {}
+            }
+        }
+
         let mut d = rl.begin_drawing(&thread);
+
         for y in 0..256 {
             for x in 0..256 {
                 let mem_color_idx =
@@ -114,11 +138,25 @@ impl Cpu {
             self.pc = self.memory.as_ptr().add(jump);
         }
     }
+
+    fn step_key(&mut self, byte: u8) {
+        println!("Recieved key: {byte}");
+        let keyb_ptr = self.memory.as_ptr() as *mut u16;
+        let mut value = unsafe { u16::from_le(*keyb_ptr) };
+
+        if byte < 8 {
+            value |= 1 << (byte + 8);
+        } else {
+            value |= 1 << (byte - 8);
+        }
+        unsafe { *keyb_ptr = value }
+        println!("Keyb state: {value}");
+    }
 }
 
 #[test]
 fn cpu_step_test() {
-    let mut program = vec![
+    let program = vec![
         0, // 0
         0, // 1
         0, // 2

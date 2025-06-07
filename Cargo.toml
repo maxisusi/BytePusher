@@ -1,7 +1,8 @@
 [package]
-name = "bpp"
+name = "rasterizer"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+nom = "8.0.0"
 raylib = "5.5.1"
